@@ -1,18 +1,8 @@
-I am Ganesh manavatkar this is updated file
-
 use Project_db
-
-alter table artist add primary Key (artist_id)
-alter table album add foreign key (artist_id) references artist(artist_id)
-
-alter table artist alter column artist_id int not null
-
-
-Select playList_id from playlist
 
 -- 1) Give top 5 country which have generated most invoices
 
-Select top 5 count(*) as No_of_Invoices_Generated,billing_country from invoice
+Select top 5 billing_country,count(*) as No_of_Invoices_Generated from invoice
 group by billing_country
 order by No_of_Invoices_Generated desc
 
@@ -53,10 +43,8 @@ end
 
 Execute SpGetCustspend 32
 
-
-
    
----6) Find the names of all Customers who have purchased tracks from the album 'Fear Of The Dark' and also
+---5) Find the names of all Customers who have purchased tracks from the album 'Fear Of The Dark' and also
 --return its title, invoice details
 
 Select a.title as Title,i.invoice_id as Invoice_id,CAST(i.invoice_date as date)as Invoice_date,
@@ -72,7 +60,7 @@ inner join album as a
 on t.album_id=a.album_id
 where a.title= 'Fear Of The Dark'
 
----7) Identify the no of tracks and its media type of each playlist
+---6) Identify the no of tracks of each playlist and its media type
 
 Select p.playlist_id,count(pt.track_id) as No_of_tracks, m.name as Media_type from playlist as p 
 left join  playlist_track  as pt
@@ -84,14 +72,13 @@ on t.media_type_id=m.media_type_id
 group by p.playlist_id,m.name
 order by p.playlist_id
 
----8) List all the Employees who reports to an employee named 'Nancy Edwards'
+---7) List all the Employees who reports to an employee named 'Nancy Edwards'
 
 Select concat(first_name ,+ ' ' + Last_name) as Employees_full_name,title,city, email  from employee
 where reports_to in 
 (Select reports_to from employee where reports_to=2)	
-Select * from employee
 
--- 9) Give the artist's data Which artist have tracks belonging to the genre 'TV Shows'
+-- 8) Give the artist's data Which artist have tracks belonging to the genre 'TV Shows'
 
 Select distinct a.artist_id,a.name from artist as a
 inner join album  as al
@@ -102,7 +89,7 @@ inner join genre as g
 on t.genre_id=g.genre_id
 where  g.name='TV Shows'
 
--- 10) Retrieve the Invoice Id and the name of the employee and its name and contact who processed that invoice 
+-- 9) Retrieve the Invoice Id and the name of the employee and its name and contact who processed that invoice 
 
 go
 Create procedure Getempdetails
@@ -119,14 +106,14 @@ end
 
 execute Getempdetails 610
 
---11)Identity the Playlist id and its name that has the most expensive track
+--10)Identity the Playlist id and its name that has the most expensive track
 
 Select * from playlist 
 where playlist_id  in
 (Select playlist_id from playlist_track where track_id in 
 (Select top 1 track_id from track order by unit_price desc))
  
---12) For Each artist, find the album with the highest unit Price (Show Artist Name and its album and their unit price
+--11) For Each artist, find the album with the highest unit Price (Show Artist Name and its album and their unit price
 
 Select a.name as Artist_Name,al.title as Album,max(unit_price) as Unit_Price from artist as a 
 inner  join  album as al
@@ -136,8 +123,8 @@ on al.album_id=t.album_id
 group by a.name, al.title
 order by Unit_Price desc
 
---13) Give an each genre in their media type with how much tracks are there and average tracks 
---       Sort the no of tracks in asceding order
+--12) Give an each genre in their media type with how much tracks are there and average tracks 
+--    Sort the no of tracks in asceding order
 
 Select g.name as Genre,m.name as Media_Type,count(*) as No_of_Tracks,avg(track_id)as Average_track 
 from media_type as m 
@@ -148,23 +135,7 @@ on t.genre_id=g.genre_id
 group by g.name,m.name
 order by No_of_Tracks desc
 
---15) Make a Report which shows media type, no of tracks and total sales at every Year
-
-Select m.name as Media_Type,year(i.invoice_date)as Year, count(t.track_id) as No_of_tracks,
-       sum(i.total) As Total_Sales
-from invoice as i
-inner join invoice_line as il
-on i.invoice_id=il.invoice_id
-inner join track as t
-on il.track_id=t.track_id
-inner join media_type as m
-on t.media_type_id=m.media_type_id
-where year(i.invoice_date) = 2018
-group by m.name,year(i.invoice_date)
-order by m.name,year(i.invoice_date)
-
-
-Select * from Genre
+--13) Make a Report which shows media type, no of tracks and total sales at every Year
 
 Select distinct unit_price from invoice_line order by unit_price desc
 Select * from employee
@@ -179,71 +150,29 @@ on c.customer_id=i.customer_id
 group by e.employee_id,e.first_name
 
 
+--14) Create a function to get a monthly invoice summary ( total, and average revenue) for a specific month?
 
-
-Select Max(distinct total)  from invoice  
-Select * from customer
-sp_helptext spgetcustspend
---2017
---2018
---2019
---2020
-
-Select year(invoice_date) as Year,month(invoice_date) as Month, Sum(total) as Montly_revenue
-from invoice group by month(invoice_date),year(invoice_date)
-
-Select customer_id 
-from invoice 
-group by customer_id,datepart(year,invoice_date)
-having datepart(year,invoice_date) like 2017 
---and 
-
-Select distinct billing_country as Country from invoice
-where year(invoice_date) in (2018,2019,2020)
-
-Select billing_country,billing_state,sum(total) from invoice
-group by billing_country,billing_state
-order by billing_country
-
-Select cast(invoice_date as date)from invoice
-where cast(invoice_date as date)=('2017-01-06')
-
-Select total from invoice order by total desc
-
-Select * from invoice where invoice_id=1
-
-Select invoice_id,format(invoice_date,'yyyy-MM')as Invoice_date,total as Invoice_date 
-from invoice
-group by format(invoice_date,'yyyy-MM')as Invoice_date
-
-Select format(invoice_date,'yyyy-MM')as Invoice_date,count(invoice_id)as No_of_Invoices_generated
-,sum(total) as Monthly_Revenue,Avg(total) as Average_Revenue
-from invoice
-where format(invoice_date,'yyyy-MM')='2018-03'
-group by format(invoice_date,'yyyy-MM')
-
-
-
-CREATE FUNCTION dbo.GetMonthlyInvoiceSummary
+Create Function GetMonthlyInvoiceSummary
 (
-    @TargetYearMonth NVARCHAR(7) -- Parameter to specify the year and month (e.g., '2018-03')
+    @TargetYearMonth varchar(20) -- Parameter to specify the year and month (e.g., '2018-03')
 )
-RETURNS TABLE
-AS
-RETURN
+Returns Table
+as
+Return
 (
-    SELECT
-        FORMAT(invoice_date, 'yyyy-MM') AS Invoice_Date,
-        COUNT(invoice_id) AS No_of_Invoices_Generated,
-        SUM(total) AS Monthly_Revenue,
-        AVG(total) AS Average_Revenue
-    FROM
-        invoice
-    WHERE
-        FORMAT(invoice_date, 'yyyy-MM') = @TargetYearMonth -- Filter using the passed parameter
-    GROUP BY
-        FORMAT(invoice_date, 'yyyy-MM')
+    Select
+        Format(invoice_date, 'yyyy-MM') AS Invoice_Date,
+        Count(invoice_id) AS No_of_Invoices_Generated,
+        Sum(total) AS Monthly_Revenue,
+        Avg(total) AS Average_Revenue
+    From
+        0invoice
+    Where
+        Format(invoice_date, 'yyyy-MM') = @TargetYearMonth -- Filter using the passed parameter
+    Group by 
+        Format(invoice_date, 'yyyy-MM')
 );
-GO
 
-Select dbo.GetMonthlyInvoiceSummary ('2018-03')
+Select * from dbo.GetMonthlyInvoiceSummary ('2018-03')
+
+
